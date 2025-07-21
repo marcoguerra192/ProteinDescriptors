@@ -11,5 +11,4 @@ import numpy as np
 from .distance_dist import centroid, distances_from_point
 from gudhi import SimplexTree
 
-def 
 

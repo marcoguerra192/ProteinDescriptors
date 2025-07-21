@@ -18,6 +18,8 @@ FractionOfN_Files = 2
 
 def analyze(params):
 
+    pass
+
     # READ DATA
         # Process or retrieve stored
         # Both data and ground truth

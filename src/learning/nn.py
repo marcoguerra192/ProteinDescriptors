@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import accuracy_score
 from IPython.display import display, clear_output
 import matplotlib.pyplot as plt
+import wandb
 
 
 class SimpleNN(nn.Module):
@@ -28,6 +29,7 @@ class SimpleNN(nn.Module):
         self.fc1 = nn.Linear(input_dim, 111) 
         self.relu = nn.ReLU()  # ReLU activation
         self.fc2 = nn.Linear(111, 100) 
+        self.fcE = nn.Linear(111, 111) 
         self.fc3 = nn.Linear(100,97) 
         self.fc4 = nn.Linear(97, num_classes)  # Output layer
         
@@ -35,6 +37,9 @@ class SimpleNN(nn.Module):
     def forward(self, x):
         #x = self.dr(x)
         x = self.fc1(x)
+        x = self.relu(x)
+        x = self.dr(x)
+        x = self.fcE(x)
         x = self.relu(x)
         x = self.dr(x)
         x = self.fc2(x)
@@ -78,7 +83,7 @@ class Autoencoder(nn.Module):
 
 
 
-def train(N_epochs,model,criterion, optimizer, train_loader, val_loader, save_path, patience=25 ):
+def train(N_epochs,model,criterion, optimizer, train_loader, val_loader, save_path, patience=25, use_wandb=False):
 
     best_loss = float('inf')
     counter = 0
@@ -137,6 +142,17 @@ def train(N_epochs,model,criterion, optimizer, train_loader, val_loader, save_pa
             
             batch_acc = np.array(batch_acc)
             accuracies.append( np.mean(batch_acc) )
+
+        # Log to wandb
+        if use_wandb:
+            log_dict = {
+                "train_loss": avg_train_loss,
+                "val_loss": val_loss,
+                "epoch": epoch,
+            }
+            
+            log_dict["val_accuracy"] = accuracies[-1]
+            wandb.log(log_dict)
     
         # Early Stopping Check
         if val_loss < best_loss:
