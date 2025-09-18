@@ -163,7 +163,7 @@ y_pred = y_pred.cpu().numpy()
 
 print('Majority voting and class frequencies')
 
-# y_pred has 8 predictions for each original protein. We now compute the majority vote
+# y_pred has 60 predictions for each original protein. We now compute the majority vote
 # and break ties by a-priori class frequency
 
 # a-priori class frequency
@@ -173,7 +173,7 @@ for i,c in enumerate(uni_classes):
     a_priori_freq[c] = class_counts[i]
 
 # majority vote
-bl_pred = y_pred.reshape(-1,8) # reshape in blocks of 8, each is one protein
+bl_pred = y_pred.reshape(-1,60) # reshape in blocks of 60, each is one protein
 uni_counts = [np.unique(block, return_counts=True) for block in bl_pred]
 sorted_classes = []
 

@@ -264,7 +264,7 @@ def dodecahedron_common_face( simplex, centroid ):
     ValueError if it does not exist
 
     '''
-    sectors = np.array([which_dodecahedral_sector(p, centroid) for p in simplex], dtype = int)
+    sectors = np.array([which_dodecahedral_face(p, centroid) for p in simplex], dtype = int)
     unique_sec = np.unique(sectors)
 
     if unique_sec.shape[0] > 1:
@@ -293,6 +293,6 @@ def gen_dodecahedron_block_permutations(B):
             block_permutations[ i , B*j:B*(j+1) ] = np.array( np.arange(B*target_ind , B*(target_ind+1) ))
         
     
-    return block_permutations
+    return block_permutations.tolist()
 
     

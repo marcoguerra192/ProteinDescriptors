@@ -19,7 +19,11 @@ from src.data_reader import DataSource, read_vertices_VTK, num_vertices_VTK
 from .alpha_prominent import AlphaDiag, PersImagesVectorize
 from .distance_dist import quantiles_of_distance, distances_from_point
 from .distance_dist import centroid as Centroid
-from .spherical_sectors import common_sector, which_sector
+#from .spherical_sectors import common_sector, which_sector
+
+from . import dodecahedron
+from .dodecahedron import which_dodecahedral_face as which_sector
+from .dodecahedron import dodecahedron_common_face as common_sector
 
 import csv
 import pickle
@@ -58,7 +62,7 @@ def compute_descriptors( data_source : str | Path, model : str, **kwargs ):
     if model == 'Sectors':
 
         N_Features = len(which_quantiles) + len(which_quantiles) + 2 + 2 + 2 # NO H2!!
-        data = np.zeros(( N_Files ,8*N_Features) , dtype = float) # For 8 sectors!!
+        data = np.zeros(( N_Files ,12*N_Features) , dtype = float) # For 12 sectors!!
     
     # # read the labels
     # Truth = {}
@@ -182,10 +186,10 @@ def compute_descriptors( data_source : str | Path, model : str, **kwargs ):
     return data, labels
 
 def compute_spherical_sectors_descs(data_source : str | Path, NumpySource : str | Path, out_path : str | Path ,  **kwargs):
-    ''' Compute the required descriptors on the spherical sectors rather
+    ''' Compute the required descriptors on the dodecahedral sectors rather
     than on the whole protein.
 
-    For each protein file, save a file containing a dictionary with 8 fields.
+    For each protein file, save a file containing a dictionary with 12 fields.
     Each field is one sector, containing a list of the raw descriptors:
     [ quantiles , radial_accumulated_potential , Dgm0, Dgm1, gens ]
     (gens is the generators of each birth and death event).
@@ -224,11 +228,11 @@ def compute_spherical_sectors_descs(data_source : str | Path, NumpySource : str 
         centroid = Centroid(points)
         dists = distances_from_point(points, centroid)
     
-        ## NOW SPLIT IN 8 SECTORS
+        ## NOW SPLIT IN 12 SECTORS
     
         SecPoints = []
         SCs = []
-        for _ in range(8):
+        for _ in range(12):
             SCs.append( SimplexTree() )
             SecPoints.append( [] )
     
@@ -328,7 +332,7 @@ def process_spherical_sectors_descriptors(data_source : str | Path, raw_descript
     source = DataSource( data_source, base_path=data_source)
 
     N_Features = len_quant*2 + 3 + 2 + 2
-    N_sectors = 8
+    N_sectors = 12
     data = np.zeros( (N_Files , N_sectors* N_Features) )
 
     for j,s in enumerate(source):

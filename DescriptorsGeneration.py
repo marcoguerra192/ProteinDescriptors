@@ -13,6 +13,7 @@ from src.data_reader import DataSource, convertVTK_to_numpy
 
 from src.descriptors.dscs_driver import compute_descriptors, compute_spherical_sectors_descs, process_spherical_sectors_descriptors
 from src.descriptors.spherical_sectors import spherical_block_permutations
+from src.descriptors.dodecahedron import gen_dodecahedron_block_permutations
 
 import csv
 
@@ -20,7 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 
 # CHOOSE IF VERBOSE
-verbose = False
+verbose = True
 
 std_out = sys.stdout
 null_out = open(os.devnull, 'w')
@@ -327,14 +328,14 @@ print('   Finished cleaning Alpha')
 
 # SPHERICAL sectors descriptors
 
-print('   Spherical descriptors')
+print('   Dodecahedral descriptors')
 
 dataTrain = np.load('./data/savedSectors/train_set.npy')
 dataTest = np.load('./data/savedSectors/test_set.npy')
 
 # H_2 data is redundant, it's always zero
 
-exclude = [ 8 + 13*k for k in range(8) ]
+exclude = [ 12 + 13*k for k in range(12) ]
 dataTrain = np.delete(dataTrain, exclude, axis = 1)
 dataTest = np.delete(dataTest, exclude, axis = 1)
 
@@ -345,7 +346,7 @@ dataTest = SSc.fit_transform(dataTest)
 
 
 # decorrelate sectors
-for k in range(8):
+for k in range(12):
     c1 = 0 + 12*k
     c2 = 1 + 12*k
     c3 = 2 + 12*k
@@ -407,27 +408,30 @@ print('Finished data cleaning \n', flush=True)
 
 # DATA AUGMENTATION
 
-print('Start data augmentation on spherical descriptors \n', flush=True)
+print('Start data augmentation on dodecahedral descriptors \n', flush=True)
 
 dataTrain = np.load('./data/savedSectors/train_set_clean.npy')
 dataTest = np.load('./data/savedSectors/test_set_clean.npy')
 
-dataTrain_aug = np.zeros( ( dataTrain.shape[0] * 8 , dataTrain.shape[1] ) )
-dataTest_aug = np.zeros( ( dataTest.shape[0] * 8 , dataTest.shape[1] ) )
+dataTrain_aug = np.zeros( ( dataTrain.shape[0] * 60 , dataTrain.shape[1] ) )
+dataTest_aug = np.zeros( ( dataTest.shape[0] * 60 , dataTest.shape[1] ) )
+
+# generate permutations of proper block size
+permutations = gen_dodecahedron_block_permutations( int(dataTrain.shape[1]/12) )
 
 for r in range(dataTrain.shape[0]):
     vec = dataTrain[r,:].reshape(-1)
+    
+    aug_vec = vec[ permutations ]
 
-
-    aug_vec = np.array( spherical_block_permutations(vec, int(dataTrain.shape[1]/8) ) )
-    dataTrain_aug[ 8*r : 8*r + 8 , : ] = aug_vec
+    dataTrain_aug[ 60*r : 60*r + 60 , : ] = aug_vec
 
 for r in range(dataTest.shape[0]):
     vec = dataTest[r,:].reshape(-1)
 
+    aug_vec = vec[ permutations ]
 
-    aug_vec = np.array( spherical_block_permutations(vec, int(dataTest.shape[1]/8) ) )
-    dataTest_aug[ 8*r : 8*r + 8 , : ] = aug_vec
+    dataTest_aug[ 60*r : 60*r + 60 , : ] = aug_vec
 
 np.save('./data/savedSectors/train_set_aug.npy', dataTrain_aug)
 np.save('./data/savedSectors/test_set_aug.npy', dataTest_aug)
@@ -437,8 +441,8 @@ print('Augmentation on Alpha descriptors (dummy copy) \n', flush=True)
 dataAlpha_train = np.load('./data/savedAlpha/AlphaDescriptors_train_clean.npy')
 dataAlpha_test = np.load('./data/savedAlpha/AlphaDescriptors_test_clean.npy')
 
-dataAlphaTrain_aug = np.repeat(dataAlpha_train, repeats=8, axis=0)
-dataAlphaTest_aug = np.repeat(dataAlpha_test, repeats=8, axis=0)
+dataAlphaTrain_aug = np.repeat(dataAlpha_train, repeats=60, axis=0)
+dataAlphaTest_aug = np.repeat(dataAlpha_test, repeats=60, axis=0)
 
 np.save('./data/savedAlpha/AlphaDescriptors_train_aug.npy', dataAlphaTrain_aug)
 np.save('./data/savedAlpha/AlphaDescriptors_test_aug.npy', dataAlphaTest_aug)
@@ -447,7 +451,7 @@ np.save('./data/savedAlpha/AlphaDescriptors_test_aug.npy', dataAlphaTest_aug)
 print('Augmenting labels', flush=True)
 labels = np.load('./data/labels/labels_train.npy')
 
-labels_aug = np.repeat(labels, repeats=8, axis=0)
+labels_aug = np.repeat(labels, repeats=60, axis=0)
 
 np.save('./data/labels/labels_train_aug.npy', labels_aug)
 
