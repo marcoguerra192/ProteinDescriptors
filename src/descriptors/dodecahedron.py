@@ -131,4 +131,7 @@ def dodecahedron_common_sector( simplex, centroid ):
     else:
         return unique_sec[0]
 
+def dodecahedron_permutaitons():
+    return
+
     
