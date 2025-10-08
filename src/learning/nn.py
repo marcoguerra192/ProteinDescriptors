@@ -14,10 +14,14 @@ import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 from IPython.display import display, clear_output
 import matplotlib.pyplot as plt
 import wandb
+
+# define this variable as None
+# it will stay None unless modified by calls to set_test_loader
+_test_loader = None
 
 
 class SimpleNN(nn.Module):
@@ -26,10 +30,10 @@ class SimpleNN(nn.Module):
         super(SimpleNN, self).__init__()
 
         self.dr = nn.Dropout(p=.25) # dropout layer
-        self.fc1 = nn.Linear(input_dim, 111) 
+        self.fc1 = nn.Linear(input_dim, 120) 
         self.relu = nn.ReLU()  # ReLU activation
-        self.fc2 = nn.Linear(111, 100) 
-        self.fcE = nn.Linear(111, 111) 
+        self.fc2 = nn.Linear(120, 100) 
+        #self.fcE = nn.Linear(111, 111) 
         self.fc3 = nn.Linear(100,97) 
         self.fc4 = nn.Linear(97, num_classes)  # Output layer
         
@@ -39,9 +43,9 @@ class SimpleNN(nn.Module):
         x = self.fc1(x)
         x = self.relu(x)
         x = self.dr(x)
-        x = self.fcE(x)
-        x = self.relu(x)
-        x = self.dr(x)
+        #x = self.fcE(x)
+        #x = self.relu(x)
+        #x = self.dr(x)
         x = self.fc2(x)
         x = self.relu(x)
         x = self.dr(x)
@@ -94,22 +98,16 @@ def train(N_epochs,model,criterion, optimizer, train_loader, val_loader, save_pa
     acc_epochs = []
     accuracies = []
 
+    # test set track
+    if _test_loader is not None:
+        test_accuracies = []
+        test_bal_accuracies = []
+
     for epoch in range(N_epochs):  # Train for up to N_epochs epochs
 
         running_train_loss = 0.0
-        
-        model.train()
-        for X_batch, y_batch in train_loader:
-            optimizer.zero_grad()
-            outputs = model(X_batch)
-            loss = criterion(outputs, y_batch)
-            loss.backward()
-            optimizer.step()
-            running_train_loss += loss.item()
 
-        avg_train_loss = running_train_loss / len(train_loader)
-        train_losses.append(avg_train_loss)
-        
+
         # Validation Loss
         
         model.eval()
@@ -127,21 +125,55 @@ def train(N_epochs,model,criterion, optimizer, train_loader, val_loader, save_pa
         val_losses.append(val_loss)
         print(f"Epoch {epoch+1}, Validation Loss: {val_loss:.4f}")
 
-        if epoch % 20 == 0: # check accuracy
+        if epoch < 10 or (epoch < 100 and epoch % 10 ==0) or epoch % 20 == 0: # check accuracy
 
             model.eval()  # Set model to evaluation mode
             batch_acc = []
+            
             acc_epochs.append(epoch)
             with torch.no_grad():
                 for X_batch, y_batch in val_loader:
                     outputs = model(X_batch)
                     predicted = torch.argmax(outputs, dim=1)  # Get class with highest probability
                     predicted = predicted.cpu().numpy()
-                    batch_acc.append( accuracy_score(predicted, y_batch ) )
+                    batch_acc.append( accuracy_score(y_batch, predicted ) )
                     
+
             
             batch_acc = np.array(batch_acc)
             accuracies.append( np.mean(batch_acc) )
+
+
+            if _test_loader is not None:
+
+                test_acc = []
+                test_bal_acc= []
+                with torch.no_grad():
+                    for X_t, y_t in _test_loader:
+                        outputs = model(X_t)
+                        predicted = torch.argmax(outputs, dim=1)  # Get class with highest probability
+                        predicted = predicted.cpu().numpy()
+                        test_acc.append( accuracy_score(y_t, predicted ) )
+                        test_bal_acc.append( balanced_accuracy_score(y_t, predicted ) )
+
+                test_acc = np.array(test_acc)
+                test_bal_acc = np.array(test_bal_acc)
+                test_accuracies.append( np.mean(test_acc) )
+                test_bal_accuracies.append( np.mean(test_bal_acc) )
+        
+        model.train()
+        for X_batch, y_batch in train_loader:
+            optimizer.zero_grad()
+            outputs = model(X_batch)
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+            running_train_loss += loss.item()
+
+        avg_train_loss = running_train_loss / len(train_loader)
+        train_losses.append(avg_train_loss)
+        
+        
 
         # Log to wandb
         if use_wandb:
@@ -152,6 +184,8 @@ def train(N_epochs,model,criterion, optimizer, train_loader, val_loader, save_pa
             }
             
             log_dict["val_accuracy"] = accuracies[-1]
+            log_dict["test_accuracy"] = test_accuracies[-1]
+            log_dict["test_bal_accuracy"] = test_bal_accuracies[-1]
             wandb.log(log_dict)
     
         # Early Stopping Check
@@ -165,43 +199,56 @@ def train(N_epochs,model,criterion, optimizer, train_loader, val_loader, save_pa
                 print("Early stopping triggered.")
                 break  # Stop training
 
+        print(f"Epoch {epoch+1}, Validation Loss: {val_loss:.4f}", flush=True)
+
         # Live plot update
-        clear_output(wait=True)
+        # clear_output(wait=True)
 
-        plt.figure(figsize=(12, 4))
+        # plt.figure(figsize=(12, 4))
         
-        plt.subplot(1, 2, 1)
-        plt.plot(train_losses, label="Train Loss")
-        plt.plot(val_losses, label="Validation Loss")
-        #plt.plot(true_tr_losses, label="True Training Loss")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.ylim([ 0.0 , 2.5 ])
-        plt.grid()
-        plt.title("Training vs Validation Loss")
-        plt.legend()
+        # plt.subplot(1, 2, 1)
+        # plt.plot(train_losses, label="Train Loss")
+        # plt.plot(val_losses, label="Validation Loss")
+        # #plt.plot(true_tr_losses, label="True Training Loss")
+        # plt.xlabel("Epoch")
+        # plt.ylabel("Loss")
+        # plt.ylim([ 0.0 , 2.5 ])
+        # plt.grid()
+        # plt.title("Training vs Validation Loss")
+        # plt.legend()
 
-        plt.subplot(1, 2, 2)
-        plt.plot(acc_epochs, accuracies, 'o-', label='Val Accuracy')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.title('Validation Accuracy ')
-        plt.ylim([ 0.0 , 1.0 ])
-        plt.grid()
-        plt.legend(loc='lower right')
-        plt.show()
-
-
-    print(f"Epoch {epoch+1}, Validation Loss: {val_loss:.4f}")
+        # plt.subplot(1, 2, 2)
+        # plt.plot(acc_epochs, accuracies, 'o-', label='Val Accuracy')
+        # plt.xlabel('Epoch')
+        # plt.ylabel('Accuracy')
+        # plt.title('Validation Accuracy ')
+        # plt.ylim([ 0.0 , 1.0 ])
+        # plt.grid()
+        # plt.legend(loc='lower right')
+        # plt.show()
 
 
-def predict(model, val_loader, device):
+def set_test_loader(loader):
+    ''' This function receives a pytorch data loader for the test set
+    and creates a local variable for it. If this function is called by the caller
+    of "training", then training can keep track of the performance of the model 
+    on the test set.
+    '''
+
+    global _test_loader
+
+    _test_loader = loader
+
+    
+    
+
+def predict(model, data_loader, device):
 
     model.eval()  # Set model to evaluation mode
     y_pred = []
     
     with torch.no_grad():  # No gradient calculation needed
-        for batch_X, batch_y in val_loader:
+        for batch_X, batch_y in data_loader:
             batch_X, batch_y = batch_X.to(device), batch_y.to(device)
             outputs = model(batch_X)
             predicted = torch.argmax(outputs, dim=1)  # Get class with highest probability

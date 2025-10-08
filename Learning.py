@@ -12,6 +12,7 @@ from src.data_reader import DataSource
 
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import accuracy_score
+from sklearn.utils.class_weight import compute_class_weight
 
 import torch
 import torch.nn as nn
@@ -19,8 +20,10 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from torchinfo import summary as torch_summary
 
-from src.learning.nn import SimpleNN, train, predict, Autoencoder
+from src.learning.nn import SimpleNN, train, predict, set_test_loader
 import csv
+
+import wandb
 
 
 print('** Training a classification model **', flush=True)
@@ -66,8 +69,10 @@ labels = np.load('./data/labels/labels_train_aug.npy')
 #labels = np.random.randint(2, size=labels.shape, dtype=int)
 #ground_truths = np.random.randint(2, size=ground_truths.shape, dtype=int)
 
-data = np.concatenate( [dataSectorsTrain , dataAlphaTrain] , axis = 1 )
-test = np.concatenate( [dataSectorsTest , dataAlphaTest] , axis = 1 )
+
+
+data = np.concatenate( [dataSectorsTrain ] , axis = 1 )
+test = np.concatenate( [dataSectorsTest ] , axis = 1 )
 
 print('Shape of training data')
 print(data.shape, flush=True)
@@ -76,7 +81,7 @@ print(test.shape, flush=True)
 
 # SET UP LEARNING MODEL
 
-StrShSp = StratifiedShuffleSplit(n_splits=15, train_size=0.8, random_state=None)
+StrShSp = StratifiedShuffleSplit(n_splits=8, train_size=0.8, random_state=None)
 
 # get indices of split
 train_idx, val_idx = next(StrShSp.split(data, labels))
@@ -86,6 +91,17 @@ train_labels = labels[train_idx]
 
 val_data = data[val_idx]
 val_labels = labels[val_idx]
+
+# #### OVERRIDE TO TRAIN THE FINAL MODEL
+
+# train_data = data[:,:]
+# train_labels = labels[:]
+
+# val_data = data[:,:]
+# val_labels = labels[:]
+
+# # *******
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -124,16 +140,44 @@ try:
 except:
     pass
 
-criterion = nn.CrossEntropyLoss()  # Cross-entropy loss
-optimizer = optim.Adam(model.parameters(), lr=4e-4, weight_decay=1e-4)  # Adam optimizer
+# WEIGHTED CROSS ENTROPY
+class_weights = compute_class_weight('balanced', classes=np.unique(labels), y=labels)
+class_weights = class_weights**0.5
 
-epochs = 5000
+criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(class_weights).float())  # Cross-entropy loss
+optimizer = optim.Adam(model.parameters(), lr=4e-4, weight_decay=1e-4)  # Adam optimizer
+#optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)  # Adam optimizer
+
+epochs = 200
 # Early Stopping Parameters
-patience = int(epochs/10)  # Stop if no improvement for 'patience' epochs
+patience = int(epochs/12)  # Stop if no improvement for 'patience' epochs
+patience = 2000  # Stop if no improvement for 'patience' epochs
+
+# track test score
+t_l = torch.tensor(test, dtype=torch.float32)
+t_g = torch.tensor(np.repeat(ground_truths, repeats=60, axis=0), dtype=torch.long)
+test_loader = TensorDataset(t_l, t_g)
+test_loader = DataLoader( test_loader , batch_size = t_g.size(0), shuffle=False )
+set_test_loader(test_loader)
+
+wandb.init(
+    project="ShrecProteinDescriptors",
+    config={
+        "epochs": epochs,
+        "batch_size": 128,
+        "lr": 4e-4,
+        "architecture": "SimpleNN",
+        # add more parameters if needed
+    },
+    name="SectorsWeightedCE" 
+)
+
 
 print('Start training', flush=True)
 
-train(epochs, model, criterion, optimizer, train_loader, val_loader, trained_model_path, patience)
+train(epochs, model, criterion, optimizer, train_loader, val_loader, trained_model_path, patience, use_wandb=True)
+
+wandb.finish()
 
 print('Finished training \n', flush=True)
 
@@ -167,7 +211,7 @@ print('Majority voting and class frequencies')
 # and break ties by a-priori class frequency
 
 # a-priori class frequency
-uni_classes , class_counts = np.unique(ground_truths, return_counts=True)
+uni_classes , class_counts = np.unique(labels[::60], return_counts=True)
 a_priori_freq = {}
 for i,c in enumerate(uni_classes):
     a_priori_freq[c] = class_counts[i]
@@ -175,6 +219,7 @@ for i,c in enumerate(uni_classes):
 # majority vote
 bl_pred = y_pred.reshape(-1,60) # reshape in blocks of 60, each is one protein
 uni_counts = [np.unique(block, return_counts=True) for block in bl_pred]
+
 sorted_classes = []
 
 for protein in uni_counts:
@@ -193,6 +238,7 @@ sorted_classes = [ [ x[0].tolist(), x[1]] for x in sorted_classes]
 
 # put the two together
 majority_voting = []
+count_ties = 0
 
 for classes, counts in sorted_classes:
 
@@ -206,9 +252,12 @@ for classes, counts in sorted_classes:
     else: # if there is more than one class with the same prediction confidence
         top_class = max( tied_classes, key = lambda n : a_priori_freq[n] ) # choose based on the a-priori frequency
         majority_voting.append(top_class)
+        count_ties += 1
 
 majority_voting = np.array(majority_voting).reshape((len(majority_voting)),)
 np.save('./data/prediction.npy', majority_voting)
+
+print('There were ', count_ties, ' ties broken by a priori frequency')
 
 print('Final accuracy score:')
 print(accuracy_score(majority_voting, ground_truths))

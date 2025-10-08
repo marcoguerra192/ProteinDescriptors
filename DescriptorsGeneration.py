@@ -30,230 +30,231 @@ null_out = open(os.devnull, 'w')
 
 print('** Generating descriptors **', flush=True)
 
-# LOCALIZE AND READ DATA 
+# # LOCALIZE AND READ DATA 
 
-# Training set
+# # Training set
 
-input_training_set = DataSource( './data/data/train_set/', base_path='./data/data/train_set')
-N_Files_Training = len(list(DataSource( './data/data/train_set/', base_path='./data/data/train_set'))) # count its length
-print('Training set read - ', N_Files_Training, ' files', flush=True)
+# input_training_set = DataSource( './data/data/train_set/', base_path='./data/data/train_set')
+# N_Files_Training = len(list(DataSource( './data/data/train_set/', base_path='./data/data/train_set'))) # count its length
+# print('Training set read - ', N_Files_Training, ' files', flush=True)
 
-# Test set
+# # Test set
 
-input_test_set = DataSource( './data/data/test_set/', base_path='./data/data/test_set')
-N_Files_Test = len(list(DataSource( './data/data/test_set/', base_path='./data/data/test_set'))) # count its length
-print('Test set read - ', N_Files_Test, ' files', flush=True)
+# input_test_set = DataSource( './data/data/test_set/', base_path='./data/data/test_set')
+# N_Files_Test = len(list(DataSource( './data/data/test_set/', base_path='./data/data/test_set'))) # count its length
+# print('Test set read - ', N_Files_Test, ' files', flush=True)
 
-# CONVERT FILES TO NUMPY FOR FASTER ACCESS LATER
+# # CONVERT FILES TO NUMPY FOR FASTER ACCESS LATER
 
-# Training set
+# # Training set
 
-print('Converting training VTK to Numpy\n')
+# print('Converting training VTK to Numpy\n')
 
-if not verbose:
-    sys.stdout = null_out
+# if not verbose:
+#     sys.stdout = null_out
 
-# Check that folder exists, if not create it
-os.makedirs('./data/data/train_set_Numpy/', exist_ok=True) 
+# # Check that folder exists, if not create it
+# os.makedirs('./data/data/train_set_Numpy/', exist_ok=True) 
 
-for j,s in enumerate(input_training_set):
+# for j,s in enumerate(input_training_set):
 
-    print(j+1, 'out of', N_Files_Training, flush=True)
-    print(s, flush=True)
+#     print(j+1, 'out of', N_Files_Training, flush=True)
+#     print(s, flush=True)
 
-    points, triangles, potentials, norm_potentials = convertVTK_to_numpy(s)
+#     points, triangles, potentials, norm_potentials = convertVTK_to_numpy(s)
 
-    filename = os.path.basename(s)
+#     filename = os.path.basename(s)
 
-    output_file = os.path.join( './data/data/train_set_Numpy/', filename )
+#     output_file = os.path.join( './data/data/train_set_Numpy/', filename )
 
-    np.savez(output_file, points=points, triangles=triangles, potentials=potentials, norm_potentials=norm_potentials)
+#     np.savez(output_file, points=points, triangles=triangles, potentials=potentials, norm_potentials=norm_potentials)
 
-if not verbose:
-    sys.stdout = std_out
+# if not verbose:
+#     sys.stdout = std_out
 
-# Test set
+# # Test set
 
-print('Converting test VTK to Numpy\n')
+# print('Converting test VTK to Numpy\n')
 
-# Check that folder exists, if not create it
-os.makedirs('./data/data/test_set_Numpy/', exist_ok=True) 
+# # Check that folder exists, if not create it
+# os.makedirs('./data/data/test_set_Numpy/', exist_ok=True) 
 
-if not verbose:
-    sys.stdout = null_out
+# if not verbose:
+#     sys.stdout = null_out
 
-for j,s in enumerate(input_test_set):
+# for j,s in enumerate(input_test_set):
 
-    print(j+1, 'out of', N_Files_Test, flush=True)
-    print(s, flush=True)
+#     print(j+1, 'out of', N_Files_Test, flush=True)
+#     print(s, flush=True)
 
-    points, triangles, potentials, norm_potentials = convertVTK_to_numpy(s)
+#     points, triangles, potentials, norm_potentials = convertVTK_to_numpy(s)
 
-    filename = os.path.basename(s)
+#     filename = os.path.basename(s)
 
-    output_file = os.path.join( './data/data/test_set_Numpy/', filename )
+#     output_file = os.path.join( './data/data/test_set_Numpy/', filename )
 
-    np.savez(output_file, points=points, triangles=triangles, potentials=potentials, norm_potentials=norm_potentials)
+#     np.savez(output_file, points=points, triangles=triangles, potentials=potentials, norm_potentials=norm_potentials)
 
-if not verbose:
-    sys.stdout = std_out
+# if not verbose:
+#     sys.stdout = std_out
 
-print('\nFinished conversion to Numpy \n', flush=True)
+# print('\nFinished conversion to Numpy \n', flush=True)
 
 
-# COMPUTE LABELS
-print('Computing labels \n', flush=True)
-Truth = {}
-labels = []
+# # COMPUTE LABELS
+# print('Computing labels \n', flush=True)
+# Truth = {}
+# labels = []
 
-# Read the whole label list
-with open('./data/data/train_set.csv', 'r') as csvfile:
-    truths = csv.reader(csvfile)
+# # Read the whole label list
+# with open('./data/data/train_set.csv', 'r') as csvfile:
+#     truths = csv.reader(csvfile)
 
-    next(truths, None) # skip first row, it's a header
-    for t in truths:
+#     next(truths, None) # skip first row, it's a header
+#     for t in truths:
 
-        Truth[t[0]] = int(t[1])
+#         Truth[t[0]] = int(t[1])
 
-# Read it as in the training set, so they are ordered correctly
-for f in DataSource('./data/data/train_set/'): # this way they have the same order as DataSource
+# # Read it as in the training set, so they are ordered correctly
+# for f in DataSource('./data/data/train_set/'): # this way they have the same order as DataSource
 
-    f = os.path.basename(f)
-    filename,_ = os.path.splitext(f)
+#     f = os.path.basename(f)
+#     filename,_ = os.path.splitext(f)
     
-    labels.append(Truth[filename]) 
+#     labels.append(Truth[filename]) 
 
-# convert to numpy
-labels = np.array(labels).reshape((len(labels),))
+# # convert to numpy
+# labels = np.array(labels).reshape((len(labels),))
 
-# Check that folder exists, if not create it
-os.makedirs('./data/labels/', exist_ok=True) 
+# # Check that folder exists, if not create it
+# os.makedirs('./data/labels/', exist_ok=True) 
 
-#save
-np.save('./data/labels/labels_train.npy', labels)
+# #save
+# np.save('./data/labels/labels_train.npy', labels)
 
-# COMPUTE DESCRIPTORS
+# # COMPUTE DESCRIPTORS
 
-print('Computing descriptors \n', flush=True)
+# print('Computing descriptors \n', flush=True)
 
-# ALPHA DESCRIPTORS
+# # ALPHA DESCRIPTORS
 
-print('Computing Alpha Persistent images descriptors \n', flush=True)
+# print('Computing Alpha Persistent images descriptors \n', flush=True)
 
-# Prominent points to keep
-Num_Prominent = 150
-# resolution of each axis for the persistent images
-PersImPoints = 5
-# set params for the run
-# data base path
-data_base = './data/data/'
+# # Prominent points to keep
+# Num_Prominent = 150
+# # resolution of each axis for the persistent images
+# PersImPoints = 5
+# # set params for the run
+# # data base path
+# data_base = './data/data/'
 
-Model = 'AlphaProminent'
-params = { 'data':data_base}
-params.update(  { 'Num_Prominent' : Num_Prominent , 'PersImPoints' : PersImPoints } )
-params.update( { 'which_quantiles':[ .25, .5 , .75 ] } )
+# Model = 'AlphaProminent'
+# params = { 'data':data_base}
+# params.update(  { 'Num_Prominent' : Num_Prominent , 'PersImPoints' : PersImPoints } )
+# params.update( { 'which_quantiles':[ .25, .5 , .75 ] } )
 
-# Check that folder exists, if not create it
-os.makedirs('./data/savedAlpha/', exist_ok=True) 
+# # Check that folder exists, if not create it
+# os.makedirs('./data/savedAlpha/', exist_ok=True) 
 
-# Training set
-print('   Training set', flush=True)
+# # Training set
+# print('   Training set', flush=True)
 
-# data source
-data_source = os.path.join(data_base, 'train_set/')
+# # data source
+# data_source = os.path.join(data_base, 'train_set/')
 
-if not verbose:
-    sys.stdout = null_out
-data, _ = compute_descriptors(data_source, model=Model, **params)
+# if not verbose:
+#     sys.stdout = null_out
+# data, _ = compute_descriptors(data_source, model=Model, **params)
 
-if not verbose:
-    sys.stdout = std_out
+# if not verbose:
+#     sys.stdout = std_out
 
-print('   Train data has shape ', data.shape)
+# print('   Train data has shape ', data.shape)
 
-#save
-np.save( './data/savedAlpha/AlphaDescriptors_train.npy' , data )
+# #save
+# np.save( './data/savedAlpha/AlphaDescriptors_train.npy' , data )
 
-# Test set
+# # Test set
 
-print('   Test set', flush=True)
+# print('   Test set', flush=True)
 
-# data source
-data_source = os.path.join(data_base, 'test_set/')
+# # data source
+# data_source = os.path.join(data_base, 'test_set/')
 
-if not verbose:
-    sys.stdout = null_out
+# if not verbose:
+#     sys.stdout = null_out
 
-data, _ = compute_descriptors(data_source, model=Model, **params)
+# data, _ = compute_descriptors(data_source, model=Model, **params)
 
-if not verbose:
-    sys.stdout = std_out
+# if not verbose:
+#     sys.stdout = std_out
 
-print('   Test data has shape ', data.shape)
+# print('   Test data has shape ', data.shape)
 
-#save
-np.save( './data/savedAlpha/AlphaDescriptors_test.npy' , data )
+# #save
+# np.save( './data/savedAlpha/AlphaDescriptors_test.npy' , data )
 
-print('Finished Alpha Persistent images descriptors \n', flush=True)
-# SPHERICAL SECTORS DESCRIPTORS
+# print('Finished Alpha Persistent images descriptors \n', flush=True)
+# # SPHERICAL SECTORS DESCRIPTORS
 
-print('Spherical sectors descriptors \n', flush=True)
-# Training set
+# print('Spherical sectors descriptors \n', flush=True)
+# # Training set
 
-# Check that folder exists, if not create it
-os.makedirs('./data/sectors/train_set', exist_ok=True)
-os.makedirs('./data/sectors/test_set', exist_ok=True)
-os.makedirs('./data/savedSectors/', exist_ok=True)
+# # Check that folder exists, if not create it
+# os.makedirs('./data/sectors/train_set', exist_ok=True)
+# os.makedirs('./data/sectors/test_set', exist_ok=True)
+# os.makedirs('./data/savedSectors/', exist_ok=True)
 
 
-print('   Training set \n', flush=True)
+# print('   Training set \n', flush=True)
 
-data_source = './data/data/train_set/'
-numpy_source = './data/data/train_set_Numpy/'
-raw_path = './data/sectors/train_set/'
+# data_source = './data/data/train_set/'
+# numpy_source = './data/data/train_set_Numpy/'
+# raw_path = './data/sectors/train_set/'
 
-print('      Compute raw')
-if not verbose:
-    sys.stdout = null_out
-compute_spherical_sectors_descs(data_source , numpy_source, raw_path)
-if not verbose:
-    sys.stdout = std_out
+# print('      Compute raw')
+# if not verbose:
+#     sys.stdout = null_out
+# compute_spherical_sectors_descs(data_source , numpy_source, raw_path)
+# if not verbose:
+#     sys.stdout = std_out
 
-length_of_quantiles = 3 # how many quantiles we are using
-write_path = './data/savedSectors/train_set.npy'
+# length_of_quantiles = 3 # how many quantiles we are using
+# write_path = './data/savedSectors/train_set.npy'
 
-print('      Process')
-if not verbose:
-    sys.stdout = null_out
-process_spherical_sectors_descriptors(data_source, raw_path, numpy_source, write_path, length_of_quantiles)
-if not verbose:
-    sys.stdout = std_out
-# Test set
+# print('      Process')
+# if not verbose:
+#     sys.stdout = null_out
+# process_spherical_sectors_descriptors(data_source, raw_path, numpy_source, write_path, length_of_quantiles)
+# if not verbose:
+#     sys.stdout = std_out
+# # Test set
 
-print('   Test set \n', flush=True)
+# print('   Test set \n', flush=True)
 
-data_source = './data/data/test_set/'
-numpy_source = './data/data/test_set_Numpy/'
-raw_path = './data/sectors/test_set/'
+# data_source = './data/data/test_set/'
+# numpy_source = './data/data/test_set_Numpy/'
+# raw_path = './data/sectors/test_set/'
 
-print('      Compute raw')
-if not verbose:
-    sys.stdout = null_out
-compute_spherical_sectors_descs(data_source , numpy_source, raw_path)
-if not verbose:
-    sys.stdout = std_out
+# print('      Compute raw')
+# if not verbose:
+#     sys.stdout = null_out
+# compute_spherical_sectors_descs(data_source , numpy_source, raw_path)
+# if not verbose:
+#     sys.stdout = std_out
 
-length_of_quantiles = 3 # how many quantiles we are using
-write_path = './data/savedSectors/test_set.npy'
+# length_of_quantiles = 3 # how many quantiles we are using
+# write_path = './data/savedSectors/test_set.npy'
 
-print('      Process')
-if not verbose:
-    sys.stdout = null_out
-process_spherical_sectors_descriptors(data_source, raw_path, numpy_source, write_path, length_of_quantiles)
-if not verbose:
-    sys.stdout = std_out
+# print('      Process')
+# if not verbose:
+#     sys.stdout = null_out
+# process_spherical_sectors_descriptors(data_source, raw_path, numpy_source, write_path, length_of_quantiles)
+# if not verbose:
+#     sys.stdout = std_out
     
-print('Finished spherical sectors descriptors \n', flush=True)
+# print('Finished spherical sectors descriptors \n', flush=True)
+
 
 # DATA CLEANING: NORMALIZATION, DECORRELATION
 
@@ -268,7 +269,7 @@ dataTest = np.load('./data/savedAlpha/AlphaDescriptors_test.npy')
 # scaling
 SSc = StandardScaler()
 dataTrain = SSc.fit_transform(dataTrain)
-dataTest = SSc.fit_transform(dataTest)
+dataTest = SSc.transform(dataTest) # USE ONLY TRAINING DATA!
 
 # We observe the first 25 columns, corresponding to H_0, benefit from decorrelation
 for i in range(5):
@@ -301,11 +302,11 @@ for i in range(5):
 
     # test set
 
-    # compute correlations
-    reg1 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c1])
-    reg2 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c2])
-    reg4 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c4])
-    reg5 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c5])
+    # DO NOT compute correlations. Rather, use regression from the training set
+    # reg1 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c1])
+    # reg2 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c2])
+    # reg4 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c4])
+    # reg5 = LinearRegression().fit(dataTest[:, [cc]], dataTest[:, c5])
 
     # Compute residuals
     res1 = dataTest[:, c1] - reg1.predict(dataTest[:, [c1]])
@@ -319,6 +320,12 @@ for i in range(5):
     dataTest[:,c2] = res2
     dataTest[:,c4] = res4
     dataTest[:,c5] = res5
+
+# Scale again
+SSc = StandardScaler()
+dataTrain = SSc.fit_transform(dataTrain)
+dataTest = SSc.transform(dataTest) # USE ONLY TRAINING DATA!
+
 
 np.save('./data/savedAlpha/AlphaDescriptors_train_clean.npy', dataTrain)
 np.save('./data/savedAlpha/AlphaDescriptors_test_clean.npy', dataTest)
@@ -335,14 +342,14 @@ dataTest = np.load('./data/savedSectors/test_set.npy')
 
 # H_2 data is redundant, it's always zero
 
-exclude = [ 12 + 13*k for k in range(12) ]
+exclude = [ 8 + 13*k for k in range(12) ]
 dataTrain = np.delete(dataTrain, exclude, axis = 1)
 dataTest = np.delete(dataTest, exclude, axis = 1)
 
 # scaling
 SSc = StandardScaler()
 dataTrain = SSc.fit_transform(dataTrain)
-dataTest = SSc.fit_transform(dataTest)
+dataTest = SSc.transform(dataTest) # USE ONLY TRAINING DATA!
 
 
 # decorrelate sectors
@@ -379,12 +386,12 @@ for k in range(12):
 
     # test set 
 
-    # compute correlations
-    regC1 = LinearRegression().fit(dataTest[:, [c2]], dataTest[:, c1])
-    regC3 = LinearRegression().fit(dataTest[:, [c2]], dataTest[:, c3])
+    # DO NOT compute correlations! Use those from the training set
+    # regC1 = LinearRegression().fit(dataTest[:, [c2]], dataTest[:, c1])
+    # regC3 = LinearRegression().fit(dataTest[:, [c2]], dataTest[:, c3])
 
-    regQ1 = LinearRegression().fit(dataTest[:, [q2]], dataTest[:, q1])
-    regQ3 = LinearRegression().fit(dataTest[:, [q2]], dataTest[:, q3])
+    # regQ1 = LinearRegression().fit(dataTest[:, [q2]], dataTest[:, q1])
+    # regQ3 = LinearRegression().fit(dataTest[:, [q2]], dataTest[:, q3])
 
     # Compute residuals
     resC1 = dataTest[:, c1] - regC1.predict(dataTest[:, [c2]])
@@ -399,6 +406,11 @@ for k in range(12):
     
     dataTest[:,q1] = resQ1
     dataTest[:,q3] = resQ3
+
+# Scale again
+SSc = StandardScaler()
+dataTrain = SSc.fit_transform(dataTrain)
+dataTest = SSc.transform(dataTest) # USE ONLY TRAINING DATA!
 
 np.save('./data/savedSectors/train_set_clean.npy',dataTrain)
 np.save('./data/savedSectors/test_set_clean.npy',dataTest)
